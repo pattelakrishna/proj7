@@ -1,11 +1,6 @@
 pipeline {
     agent any
 
-    tools {
-        // Maven must be configured in Jenkins Global Tool Configuration with name 'Maven'
-        maven 'Maven'
-    }
-
     environment {
         ARM_CLIENT_ID       = '038c6474-ab85-462d-967c-7fe666cd99e7'
         ARM_CLIENT_SECRET   = 'EEz8Q~abZpXjRWMO1OVSAwgpFcTiIsBgRKqifcc3'
@@ -14,17 +9,16 @@ pipeline {
     }
 
     stages {
-
         stage('Build with Maven') {
             steps {
-                echo 'Building the project using Maven...'
+                echo 'Building the project with Maven...'
                 sh 'mvn clean package -Dcheckstyle.skip=true'
             }
         }
 
         stage('Archive Artifact') {
             steps {
-                echo 'Renaming and archiving the built JAR...'
+                echo 'Renaming and archiving the JAR file...'
                 sh 'mv target/*.jar target/pattelakrishnaspringpetclinic.jar'
                 archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
             }
@@ -51,7 +45,7 @@ pipeline {
         stage('Terraform Plan') {
             steps {
                 dir('infra') {
-                    echo 'Creating Terraform execution plan...'
+                    echo 'Creating Terraform plan...'
                     sh 'terraform plan'
                 }
             }
@@ -68,7 +62,7 @@ pipeline {
 
         stage('Deploy to Azure') {
             steps {
-                echo 'Deploying to Azure Web App...'
+                echo 'Deploying application to Azure Web App...'
                 sh '''
                     az login --service-principal \
                         -u $ARM_CLIENT_ID \
