@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         ARM_CLIENT_ID       = '038c6474-ab85-462d-967c-7fe666cd99e7'
-        ARM_CLIENT_SECRET   = 'EEz8Q~abZpXjRWMO1OVSAwgpFcTiIsBgRKqifcc3'
+        ARM_CLIENT_SECRET   = '-T68Q~L2YhSXkNcrwID5XaFhw4VBlD42LC6xIdpd'
         ARM_SUBSCRIPTION_ID = 'd6e154dc-0c67-4143-9261-e8b06141c24f'
         ARM_TENANT_ID       = 'e8e808be-1f06-40a2-87f1-d3a52b7ce684'
     }
