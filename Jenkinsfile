@@ -2,93 +2,79 @@ pipeline {
     agent any
 
     environment {
-        AZURE_RESOURCE_GROUP = 'project7'
-        AZURE_WEBAPP_NAME    = 'kimi-web-app-jenkins-3'
-        JAR_NAME             = 'pattelakrishnaspringpetclinic.jar'
+        ARM_CLIENT_ID       = '038c6474-ab85-462d-967c-7fe666cd99e7'
+        ARM_CLIENT_SECRET   = 'EEz8Q~abZpXjRWMO1OVSAwgpFcTiIsBgRKqifcc3'
+        ARM_SUBSCRIPTION_ID = 'd6e154dc-0c67-4143-9261-e8b06141c24f'
+        ARM_TENANT_ID       = 'e8e808be-1f06-40a2-87f1-d3a52b7ce684'
     }
 
     stages {
         stage('Build with Maven') {
             steps {
-                echo 'Building the project...'
+                echo 'Building the project with Maven...'
                 sh 'mvn clean package -Dcheckstyle.skip=true'
             }
         }
 
         stage('Archive Artifact') {
             steps {
-                echo 'Archiving JAR...'
-                sh 'mv target/*.jar target/${JAR_NAME}'
-                archiveArtifacts artifacts: "target/${JAR_NAME}", fingerprint: true
+                echo 'Renaming and archiving the JAR file...'
+                sh 'mv target/*.jar target/pattelakrishnaspringpetclinic.jar'
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
             }
         }
 
-        stage('Terraform Init & Plan') {
+        stage('Terraform Init') {
             steps {
-                withCredentials([
-                    string(credentialsId: 'ARM_CLIENT_ID',        variable: 'ARM_CLIENT_ID'),
-                    string(credentialsId: 'ARM_CLIENT_SECRET',    variable: 'ARM_CLIENT_SECRET'),
-                    string(credentialsId: 'ARM_SUBSCRIPTION_ID',  variable: 'ARM_SUBSCRIPTION_ID'),
-                    string(credentialsId: 'ARM_TENANT_ID',        variable: 'ARM_TENANT_ID')
-                ]) {
-                    dir('infra') {
-                        sh '''
-                            export ARM_CLIENT_ID=$ARM_CLIENT_ID
-                            export ARM_CLIENT_SECRET=$ARM_CLIENT_SECRET
-                            export ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID
-                            export ARM_TENANT_ID=$ARM_TENANT_ID
+                dir('infra') {
+                    echo 'Initializing Terraform...'
+                    sh 'terraform init'
+                }
+            }
+        }
 
-                            terraform init
-                            terraform validate
-                            terraform plan
-                        '''
-                    }
+        stage('Terraform Validate') {
+            steps {
+                dir('infra') {
+                    echo 'Validating Terraform configuration...'
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir('infra') {
+                    echo 'Creating Terraform plan...'
+                    sh 'terraform plan'
                 }
             }
         }
 
         stage('Terraform Apply') {
             steps {
-                withCredentials([
-                    string(credentialsId: 'ARM_CLIENT_ID',        variable: 'ARM_CLIENT_ID'),
-                    string(credentialsId: 'ARM_CLIENT_SECRET',    variable: 'ARM_CLIENT_SECRET'),
-                    string(credentialsId: 'ARM_SUBSCRIPTION_ID',  variable: 'ARM_SUBSCRIPTION_ID'),
-                    string(credentialsId: 'ARM_TENANT_ID',        variable: 'ARM_TENANT_ID')
-                ]) {
-                    dir('infra') {
-                        sh '''
-                            export ARM_CLIENT_ID=$ARM_CLIENT_ID
-                            export ARM_CLIENT_SECRET=$ARM_CLIENT_SECRET
-                            export ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID
-                            export ARM_TENANT_ID=$ARM_TENANT_ID
-
-                            terraform apply -auto-approve
-                        '''
-                    }
+                dir('infra') {
+                    echo 'Applying Terraform configuration...'
+                    sh 'terraform apply -auto-approve'
                 }
             }
         }
 
-        stage('Deploy to Azure Web App') {
+        stage('Deploy to Azure') {
             steps {
-                withCredentials([
-                    string(credentialsId: 'ARM_CLIENT_ID',     variable: 'ARM_CLIENT_ID'),
-                    string(credentialsId: 'ARM_CLIENT_SECRET', variable: 'ARM_CLIENT_SECRET'),
-                    string(credentialsId: 'ARM_TENANT_ID',     variable: 'ARM_TENANT_ID')
-                ]) {
-                    sh '''
-                        az login --service-principal \
-                            -u $ARM_CLIENT_ID \
-                            -p $ARM_CLIENT_SECRET \
-                            --tenant $ARM_TENANT_ID
+                echo 'Deploying application to Azure Web App...'
+                sh '''
+                    az login --service-principal \
+                        -u $ARM_CLIENT_ID \
+                        -p $ARM_CLIENT_SECRET \
+                        --tenant $ARM_TENANT_ID
 
-                        az webapp deploy \
-                            --resource-group $AZURE_RESOURCE_GROUP \
-                            --name $AZURE_WEBAPP_NAME \
-                            --type jar \
-                            --src-path target/$JAR_NAME
-                    '''
-                }
+                    az webapp deploy \
+                        --resource-group project7 \
+                        --name kimi-web-app-jenkins-3 \
+                        --type jar \
+                        --src-path target/pattelakrishnaspringpetclinic.jar
+                '''
             }
         }
     }
